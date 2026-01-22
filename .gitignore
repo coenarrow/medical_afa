@@ -4,3 +4,5 @@ uv.lock
 data/
 pretrained/*.pth
 pretrained/*.bin
+work_dir_*/
+reference/
