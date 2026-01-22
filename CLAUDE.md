@@ -54,8 +54,10 @@ python scripts/test_msc_flip.py \
 ### Environment Setup
 
 ```bash
-pip install -r requirements.txt
-# Or with uv: uv pip install -r requirements.txt
+# Activate the virtual environment first
+source ./.venv/bin/activate
+
+uv sync
 ```
 
 ## Architecture
