@@ -7,8 +7,10 @@ hf_weights = torch.load('pretrained/mit_b1.bin', map_location='cpu')
 # First pass: rename keys from transformers format to intermediate format
 intermediate_weights = {}
 for key, value in hf_weights.items():
-    # Skip classifier head (not needed for encoder-only usage)
+    # Rename classifier to head (model code pops these during loading)
     if key.startswith('classifier.'):
+        new_key = key.replace('classifier.', 'head.')
+        intermediate_weights[new_key] = value
         continue
     # Remove 'segformer.encoder.' prefix
     new_key = re.sub(r'^segformer\.encoder\.', '', key)
