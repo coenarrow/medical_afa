@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from functools import partial
 
-from timm.models.layers import DropPath, to_2tuple, trunc_normal_
+from timm.layers import DropPath, to_2tuple, trunc_normal_
 
 #from mmseg.utils import get_root_logger
 #from mmcv.runner import load_checkpoint
