@@ -42,6 +42,20 @@ parser.add_argument("--radius", default=8, type=int, help="radius")
 parser.add_argument("--crop_size", default=320, type=int, help="crop_size")
 parser.add_argument('--backend', default='nccl')
 
+def get_device(local_rank):
+    """Select best available device: CUDA > MPS > CPU"""
+    if torch.cuda.is_available():
+        device = torch.device(local_rank)
+        torch.cuda.set_device(local_rank)
+        print(f"Using CUDA device: {local_rank}")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+        print("Using MPS device (Apple Silicon)")
+    else:
+        device = torch.device("cpu")
+        print("Using CPU device")
+    return device
+
 def setup_seed(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
@@ -170,7 +184,6 @@ def train(cfg):
 
     num_workers = 10
 
-    torch.cuda.set_device(args.local_rank)
     dist.init_process_group(backend=args.backend,)
     
     time0 = datetime.datetime.now()
@@ -217,7 +230,7 @@ def train(cfg):
                             pin_memory=False,
                             drop_last=False)
 
-    device = torch.device(args.local_rank)
+    device = get_device(args.local_rank)
 
     wetr = WeTr(backbone=cfg.backbone.config,
                 stride=cfg.backbone.stride,
