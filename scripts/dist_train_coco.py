@@ -41,10 +41,14 @@ parser.add_argument("--local_rank", default=-1, type=int, help="local_rank")
 parser.add_argument("--radius", default=8, type=int, help="radius")
 parser.add_argument("--crop_size", default=320, type=int, help="crop_size")
 parser.add_argument('--backend', default='nccl')
+parser.add_argument('--cpu', action='store_true', help='Force CPU device')
 
-def get_device(local_rank):
+def get_device(local_rank, force_cpu=False):
     """Select best available device: CUDA > MPS > CPU"""
-    if torch.cuda.is_available():
+    if force_cpu:
+        device = torch.device("cpu")
+        print("Using CPU device (forced)")
+    elif torch.cuda.is_available():
         device = torch.device(local_rank)
         torch.cuda.set_device(local_rank)
         print(f"Using CUDA device: {local_rank}")
@@ -96,8 +100,65 @@ def get_down_size(ori_shape=(512,512), stride=16):
     _w = w // stride + 1 - ((w % stride) == 0)
     return _h, _w
 
-def validate(model=None, data_loader=None, cfg=None):
+def generate_attention_maps_after_training(cfg, checkpoint_path, device, args):
+    """Generate attention maps using the best trained checkpoint."""
+    from scripts.gen_attn import generate_attention_maps, get_dataset
 
+    logging.info(f"Loading checkpoint for attention map generation: {checkpoint_path}")
+
+    # Create output directories
+    output_dir = os.path.join(cfg.work_dir.dir, 'attention_maps')
+    cam_npy_dir = os.path.join(cfg.work_dir.dir, 'cam_npy')
+
+    # Create model (without DDP wrapper for inference)
+    model = WeTr(
+        backbone=cfg.backbone.config,
+        stride=cfg.backbone.stride,
+        num_classes=cfg.dataset.num_classes,
+        embedding_dim=256,
+        pretrained=False,
+        pooling=args.pooling,
+    )
+
+    # Load checkpoint
+    checkpoint = torch.load(checkpoint_path, map_location='cpu')
+    state_dict = checkpoint
+    if any(k.startswith('module.') for k in state_dict.keys()):
+        state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
+    model.load_state_dict(state_dict)
+    model.to(device)
+    model.eval()
+
+    # Create dataset and dataloader
+    dataset = get_dataset(cfg, split='val')
+    data_loader = DataLoader(
+        dataset,
+        batch_size=1,
+        shuffle=False,
+        num_workers=4,
+        pin_memory=False,
+        drop_last=False
+    )
+
+    logging.info(f"Generating attention maps for {len(dataset)} samples...")
+
+    # Generate attention maps
+    scales = list(cfg.cam.scales) if hasattr(cfg.cam, 'scales') else [1.0, 0.5, 1.5]
+    generate_attention_maps(
+        data_loader, model, device,
+        output_dir=output_dir,
+        cam_npy_dir=cam_npy_dir,
+        scales=scales,
+        save_attn=False,
+        attn_npy_dir=None
+    )
+
+    logging.info(f"Attention maps saved to: {output_dir}")
+    logging.info(f"CAM NPY files saved to: {cam_npy_dir}")
+
+def validate(model=None, data_loader=None, cfg=None, device=None):
+    if device is None:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     preds, gts, cams, aff_gts = [], [], [], []
     model.eval()
     avg_meter = AverageMeter()
@@ -106,10 +167,10 @@ def validate(model=None, data_loader=None, cfg=None):
                             total=len(data_loader), ncols=100, ascii=" >="):
             name, inputs, labels, cls_label = data
 
-            inputs = inputs.cuda()
+            inputs = inputs.to(device)
             b, c, h, w = inputs.shape
-            labels = labels.cuda()
-            cls_label = cls_label.cuda()
+            labels = labels.to(device)
+            cls_label = cls_label.to(device)
 
             cls, segs, edge, attn_pred = model(inputs,)
 
@@ -230,7 +291,7 @@ def train(cfg):
                             pin_memory=False,
                             drop_last=False)
 
-    device = get_device(args.local_rank)
+    device = get_device(args.local_rank, force_cpu=args.cpu)
 
     wetr = WeTr(backbone=cfg.backbone.config,
                 stride=cfg.backbone.stride,
@@ -250,7 +311,7 @@ def train(cfg):
     attn_mask_infer = get_mask_by_radius(h=infer_size, w=infer_size, radius=args.radius)
     if args.local_rank==0:
         writer = SummaryWriter(cfg.work_dir.tb_logger_dir)
-        dummy_input = torch.rand(1, 3, 384, 384).cuda(0)
+        dummy_input = torch.rand(1, 3, 384, 384).to(device)
         #writer.add_graph(wetr, dummy_input)
     
     optimizer = PolyWarmupAdamW(
@@ -295,6 +356,10 @@ def train(cfg):
     avg_meter = AverageMeter()
 
     bkg_cls = torch.ones(size=(cfg.train.samples_per_gpu, 1))
+
+    # Best checkpoint tracking
+    best_cls_score = 0.0
+    best_ckpt_path = os.path.join(cfg.work_dir.ckpt_dir, "best.pth")
 
     for n_iter in range(cfg.train.max_iters):
         
@@ -430,7 +495,7 @@ def train(cfg):
             if args.local_rank==0:
                 logging.info('Validating...')
                 torch.save(wetr.state_dict(), ckpt_name)
-            cls_score, seg_score, cam_score, aff_score = validate(model=wetr, data_loader=val_loader, cfg=cfg)
+            cls_score, seg_score, cam_score, aff_score = validate(model=wetr, data_loader=val_loader, cfg=cfg, device=device)
             if args.local_rank==0:
                 logging.info("val cls score: %.6f"%(cls_score))
                 logging.info("cams score:")
@@ -440,12 +505,29 @@ def train(cfg):
                 logging.info("segs score:")
                 logging.info(seg_score)
 
+                # Track best checkpoint
+                if cls_score > best_cls_score:
+                    best_cls_score = cls_score
+                    torch.save(wetr.state_dict(), best_ckpt_path)
+                    logging.info("New best checkpoint saved: cls_score=%.6f" % cls_score)
+
+    # Post-training: Generate attention maps using best checkpoint
+    if args.local_rank == 0:
+        logging.info("Training complete. Generating attention maps...")
+        generate_attention_maps_after_training(cfg, best_ckpt_path, device, args)
+
     return True
 
 
 if __name__ == "__main__":
 
     args = parser.parse_args()
+
+    # Get local_rank from environment variable if not provided via command line
+    # (newer PyTorch/torchrun uses env var instead of --local_rank argument)
+    if args.local_rank == -1:
+        args.local_rank = int(os.environ.get('LOCAL_RANK', 0))
+
     cfg = OmegaConf.load(args.config)
     cfg.dataset.crop_size = args.crop_size
     if args.work_dir is not None:
