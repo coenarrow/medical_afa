@@ -285,7 +285,8 @@ def train(cfg):
         power = cfg.scheduler.power
     )
     logging.info('\nOptimizer: \n%s' % optimizer)
-    wetr = DistributedDataParallel(wetr, device_ids=[args.local_rank], find_unused_parameters=True)
+    if torch.cuda.is_available():
+        wetr = DistributedDataParallel(wetr, device_ids=[args.local_rank], find_unused_parameters=True)
     # loss_layer = DenseEnergyLoss(weight=1e-7, sigma_rgb=15, sigma_xy=100, scale_factor=0.5)
     train_sampler.set_epoch(np.random.randint(cfg.train.max_iters))
     train_loader_iter = iter(train_loader)
