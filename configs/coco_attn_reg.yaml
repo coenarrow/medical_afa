@@ -4,7 +4,7 @@ backbone:
   comments: None
 
 dataset:
-  root_dir: ../data/MSCOCO
+  root_dir: data/MSCOCO
   name_list_dir: datasets/coco
   num_classes: 81
   crop_size: 320
