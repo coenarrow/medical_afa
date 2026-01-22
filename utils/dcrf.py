@@ -1,8 +1,17 @@
-import pydensecrf.densecrf as dcrf
-from pydensecrf.utils import unary_from_softmax, unary_from_labels
-import pydensecrf.utils as utils
 import numpy as np
 import torch.nn.functional as F
+
+# Try to import pydensecrf, make it optional for local testing
+try:
+    import pydensecrf.densecrf as dcrf
+    from pydensecrf.utils import unary_from_softmax, unary_from_labels
+    import pydensecrf.utils as utils
+    HAS_PYDENSECRF = True
+except ImportError:
+    HAS_PYDENSECRF = False
+    dcrf = None
+    utils = None
+    print("pydensecrf not available. CRF refinement will be skipped.")
 
 def crf_inference(img, probs, t=10, scale_factor=1, labels=21):
 
