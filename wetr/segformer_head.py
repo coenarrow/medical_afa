@@ -7,6 +7,7 @@ import numpy as np
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
+import torch.distributed as dist
 from mmcv.cnn import ConvModule
 
 class MLP(nn.Module):
@@ -46,11 +47,19 @@ class SegFormerHead(nn.Module):
         self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
         self.dropout = nn.Dropout2d(0.1)
 
+        use_syncbn = (
+            torch.cuda.is_available() and
+            dist.is_available() and
+            dist.is_initialized()
+        )
+        norm_cfg = dict(type='SyncBN', requires_grad=True) \
+            if use_syncbn else dict(type='BN', requires_grad=True)
+
         self.linear_fuse = ConvModule(
             in_channels=embedding_dim*4,
             out_channels=embedding_dim,
             kernel_size=1,
-            norm_cfg=dict(type='SyncBN', requires_grad=True)
+            norm_cfg=norm_cfg
         )
 
         self.linear_pred = nn.Conv2d(embedding_dim, self.num_classes, kernel_size=1)
