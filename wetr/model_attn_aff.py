@@ -82,7 +82,7 @@ class WeTr(nn.Module):
         #_x4 = self.dropout(_x4.clone()
         cls_x4 = self.pooling(_x4,(1,1))
         cls_x4 = self.classifier(cls_x4)
-        cls_x4 = cls_x4.view(-1, self.num_classes-1)
+        cls_x4 = cls_x4.reshape(-1, self.num_classes-1)
  
         #attns = [attn[:,0,...] for attn in _attns]
         #attns.append(attn_pred)

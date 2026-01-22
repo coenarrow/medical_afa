@@ -43,7 +43,7 @@ class PAR(nn.Module):
         for d in self.dilations:
             _x_pad = F.pad(x, [d]*4, mode='replicate', value=0)
             _x_pad = _x_pad.reshape(b*c, -1, _x_pad.shape[-2], _x_pad.shape[-1])
-            _x = F.conv2d(_x_pad, self.kernel, dilation=d).view(b, c, -1, h, w)
+            _x = F.conv2d(_x_pad, self.kernel, dilation=d).reshape(b, c, -1, h, w)
             x_aff.append(_x)
  
         return torch.cat(x_aff, dim=2)

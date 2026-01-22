@@ -66,7 +66,7 @@ class WeTr(nn.Module):
 
         cls_x4 = self.pooling(_x4,(1,1))
         cls_x4 = self.classifier(cls_x4)
-        cls_x4 = cls_x4.view(-1, self.num_classes-1)
+        cls_x4 = cls_x4.reshape(-1, self.num_classes-1)
 
         return cls_x4, seg, _attns
     
