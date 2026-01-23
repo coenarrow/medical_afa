@@ -18,7 +18,7 @@ def robust_read_npy(file_path):
     Handles grayscale by stacking to 3 channels.
     """
     img_array = np.load(file_path)
-    image = np.asarray(PIL.Image.fromarray(img_array).convert("RGB"))
+    image = np.stack([img_array] * 3, axis=-1)
     return image
 
 
@@ -68,6 +68,7 @@ class MedicalSliceDataset(Dataset):
     """
     Base dataset class for medical imaging datasets.
     Loads .npy files and extracts labels from filenames.
+    Supports in-memory caching to avoid repeated disk I/O.
     """
     def __init__(
         self,
@@ -75,6 +76,7 @@ class MedicalSliceDataset(Dataset):
         split='train',
         stage='train',
         slice_split=[0, 0],
+        use_cache=True,
         **kwargs
     ):
         super().__init__()
@@ -82,19 +84,29 @@ class MedicalSliceDataset(Dataset):
         self.stage = stage
         self.slice_split = slice_split
         self.name_list = load_slice_list(root_dir, split, slice_split)
+        # In-memory cache for raw images to avoid repeated disk I/O
+        self._cache = {} if use_cache else None
 
     def __len__(self):
         return len(self.name_list)
 
-    def __getitem__(self, idx):
+    def _load_image(self, idx):
+        """Load image from cache or disk."""
+        if self._cache is not None and idx in self._cache:
+            return self._cache[idx]
+
         slice_name = self.name_list[idx]
         slice_path = os.path.join(self.root_dir, slice_name)
-
-        # Load .npy and convert to RGB
         image = robust_read_npy(slice_path)
-
-        # Extract name key (without extension)
         _img_name = slice_name.replace('.npy', '')
+
+        if self._cache is not None:
+            self._cache[idx] = (_img_name, image)
+
+        return _img_name, image
+
+    def __getitem__(self, idx):
+        _img_name, image = self._load_image(idx)
 
         # Medical datasets typically have no segmentation labels
         if self.stage == "train" or self.stage == "val":
@@ -166,9 +178,11 @@ class MedicalClsDataset(MedicalSliceDataset):
         return image, img_box
 
     def __getitem__(self, idx):
-        img_name, image, _ = super().__getitem__(idx)
+        # Use cached image loading from base class
+        img_name, image = self._load_image(idx)
 
-        image, img_box = self._transforms(image=image)
+        # Apply transforms (includes random augmentation, so not cached)
+        image, img_box = self._transforms(image=image.copy())
 
         cls_label = self.label_list[img_name]
 
@@ -213,7 +227,8 @@ class MedicalClsValDataset(MedicalSliceDataset):
         return len(self.name_list)
 
     def __getitem__(self, idx):
-        img_name, image, _ = super().__getitem__(idx)
+        # Use cached image loading from base class
+        img_name, image = self._load_image(idx)
 
         # Normalize without augmentation for validation
         image = transforms.normalize_img(image)
