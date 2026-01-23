@@ -1,11 +1,11 @@
 backbone:
   config: mit_b1
   stride: [4, 2, 2, 1]
-  comments: LASC medical imaging dataset
+  comments: KITS medical imaging dataset
 
 dataset:
-  root_dir: data/LASC/imageSlice
-  slice_split: [4400, 4884]
+  root_dir: data/KITS/imageSlice
+  slice_split: [4, 8] #[8494, 15054]
   num_classes: 2
   crop_size: 320
   resize_range: [512, 2048]
@@ -13,7 +13,7 @@ dataset:
   ignore_index: 255
 
 work_dir:
-  dir: work_dir_lasc
+  dir: work_dir_kits
   ckpt_dir: checkpoints
   pred_dir: predictions
   segs_dir: segs

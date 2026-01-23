@@ -15,7 +15,7 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from datasets import lasc
+from datasets import brats
 from utils.losses import get_aff_loss
 from wetr.PAR import PAR
 from utils import evaluate, imutils
@@ -31,7 +31,7 @@ from wetr.model_attn_aff import WeTr
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--config",
-                    default='configs/lasc_attn_reg.yaml',
+                    default='configs/brats_attn_reg.yaml',
                     type=str,
                     help="config")
 parser.add_argument("--pooling", default="gmp", type=str, help="pooling method")
@@ -102,9 +102,9 @@ def generate_attention_maps_after_training(cfg, checkpoint_path, device, args):
 
 def validate(model=None, data_loader=None, cfg=None, device=None):
     """
-    Validation for LASC dataset.
+    Validation for BRATS dataset.
 
-    NOTE: LASC has no segmentation ground truth, so seg/cam/aff mIoU metrics
+    NOTE: BRATS has no segmentation ground truth, so seg/cam/aff mIoU metrics
     are computed against dummy labels (all zeros) and are NOT meaningful.
     Focus on classification metrics (cls_score) for actual validation.
     """
@@ -152,7 +152,7 @@ def validate(model=None, data_loader=None, cfg=None, device=None):
             np.save(os.path.join(cfg.work_dir.pred_dir, name[0]+'.npy'), {"keys":valid_label.cpu().numpy(), "cam":out_cam.cpu().numpy()})
 
     cls_score = avg_meter.pop('cls_score')
-    # Use num_classes from config (2 for LASC)
+    # Use num_classes from config (2 for BRATS)
     num_classes = cfg.dataset.num_classes
     seg_score = evaluate.scores(gts, preds, num_classes=num_classes)
     cam_score = evaluate.scores(gts, cams, num_classes=num_classes)
@@ -170,8 +170,8 @@ def train(cfg):
     time0 = datetime.datetime.now()
     time0 = time0.replace(microsecond=0)
 
-    # LASC dataset uses slice_split for index-based splitting
-    train_dataset = lasc.LASCClsDataset(
+    # BRATS dataset uses slice_split for index-based splitting
+    train_dataset = brats.BRATSClsDataset(
         root_dir=cfg.dataset.root_dir,
         split=cfg.train.split,
         stage='train',
@@ -185,8 +185,8 @@ def train(cfg):
         num_classes=cfg.dataset.num_classes,
     )
 
-    # LASC validation dataset returns dummy seg labels (no ground truth available)
-    val_dataset = lasc.LASCClsValDataset(
+    # BRATS validation dataset returns dummy seg labels (no ground truth available)
+    val_dataset = brats.BRATSClsValDataset(
         root_dir=cfg.dataset.root_dir,
         split=cfg.val.split,
         stage='val',
