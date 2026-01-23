@@ -21,8 +21,8 @@ work_dir:
 
 train:
   split: train
-  samples_per_gpu: 2 # this is the batch size
-  max_iters: 80000
+  samples_per_gpu: 32 # 4, 8, 16, 32, 64, 128
+  max_iters: 80000 # 47300, 23650, 11825, 5913, 2956, 1478
   cam_iters: 5000
   eval_iters: 5000
   log_iters: 200
