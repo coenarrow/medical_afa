@@ -3,7 +3,7 @@ import sklearn.metrics as metrics
 
 def multilabel_score(y_true, y_pred):
 
-    return metrics.f1_score(y_true, y_pred)
+    return metrics.f1_score(y_true, y_pred, zero_division=0.0)
 
 
 def _fast_hist(label_true, label_pred, num_classes):
