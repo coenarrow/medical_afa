@@ -8,6 +8,7 @@ import numpy as np
 import torch
 import torch.distributed as dist
 import torch.nn.functional as F
+import torchvision.utils
 from omegaconf import OmegaConf
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
@@ -104,13 +105,15 @@ def validate(model=None, data_loader=None, cfg=None, device=None):
     """
     Validation for BRATS dataset.
 
-    NOTE: BRATS has no segmentation ground truth, so seg/cam/aff mIoU metrics
-    are computed against dummy labels (all zeros) and are NOT meaningful.
-    Focus on classification metrics (cls_score) for actual validation.
+    NOTE: BRATS has no segmentation ground truth, so only classification metrics are
+    computed. Segmentation-based metrics return dummy values to match COCO signature.
+    CAM/attention maps are generated only at end of training via generate_attention_maps_after_training().
+    
+    Returns:
+        tuple: (cls_score, seg_score, cam_score, aff_score) where seg/cam/aff are dummy dicts
     """
     if device is None:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    preds, gts, cams, aff_gts = [], [], [], []
     model.eval()
     avg_meter = AverageMeter()
     with torch.no_grad():
@@ -119,46 +122,21 @@ def validate(model=None, data_loader=None, cfg=None, device=None):
             name, inputs, labels, cls_label = data
 
             inputs = inputs.to(device)
-            b, c, h, w = inputs.shape
-            labels = labels.to(device)
             cls_label = cls_label.to(device)
 
+            # Only compute classification output - skip CAM/seg generation during validation
             cls, segs, edge, attn_pred = model(inputs,)
 
             cls_pred = (cls>0).type(torch.int16)
             _f1 = evaluate.multilabel_score(cls_label.cpu().numpy()[0], cls_pred.cpu().numpy()[0])
             avg_meter.add({"cls_score": _f1})
 
-            resized_segs = F.interpolate(segs, size=labels.shape[1:], mode='bilinear', align_corners=False)
-
-            _cams = multi_scale_cam(model, inputs, cfg.cam.scales)
-            resized_cam = F.interpolate(_cams, size=labels.shape[1:], mode='bilinear', align_corners=False)
-            cam_label = cam_to_label(resized_cam, cls_label, cfg=cfg)
-
-            H, W = get_down_size(ori_shape=(h, w))
-            infer_mask = get_mask_by_radius(h=H, w=W, radius=args.radius)
-            valid_cam_resized = F.interpolate(resized_cam, size=(H,W), mode='bilinear', align_corners=False)
-            aff_cam = propagte_aff_cam_with_bkg(valid_cam_resized, aff=attn_pred, mask=infer_mask, cls_labels=cls_label, bkg_score=0.35)
-            aff_cam = F.interpolate(aff_cam, size=labels.shape[1:], mode="bilinear", align_corners=False)
-            aff_label = aff_cam.argmax(dim=1)
-
-            preds += list(torch.argmax(resized_segs, dim=1).cpu().numpy().astype(np.int16))
-            cams += list(cam_label.cpu().numpy().astype(np.int16))
-            gts += list(labels.cpu().numpy().astype(np.int16))
-            aff_gts += list(aff_label.cpu().numpy().astype(np.int16))
-
-            valid_label = torch.nonzero(cls_label[0])[:,0]
-            out_cam = torch.squeeze(resized_cam)[valid_label]
-            np.save(os.path.join(cfg.work_dir.pred_dir, name[0]+'.npy'), {"keys":valid_label.cpu().numpy(), "cam":out_cam.cpu().numpy()})
-
     cls_score = avg_meter.pop('cls_score')
-    # Use num_classes from config (2 for BRATS)
-    num_classes = cfg.dataset.num_classes
-    seg_score = evaluate.scores(gts, preds, num_classes=num_classes)
-    cam_score = evaluate.scores(gts, cams, num_classes=num_classes)
-    aff_score = evaluate.scores(gts, aff_gts, num_classes=num_classes)
+    
+    # Return dummy scores for seg/cam/aff to match COCO signature (no GT masks available)
+    dummy_score = {"pAcc": 0.0, "mAcc": 0.0, "miou": 0.0, "iou": {}}
     model.train()
-    return cls_score, seg_score, cam_score, aff_score
+    return cls_score, dummy_score, dummy_score, dummy_score
 
 
 def train(cfg):
@@ -200,9 +178,10 @@ def train(cfg):
     train_loader_kwargs = dict(
         batch_size=cfg.train.samples_per_gpu,
         num_workers=num_workers,
-        pin_memory=False,
+        pin_memory=True,
         drop_last=True,
         sampler=train_sampler,
+        persistent_workers=True,
     )
     if num_workers > 0:
         train_loader_kwargs['prefetch_factor'] = 4
@@ -270,7 +249,11 @@ def train(cfg):
     )
     logging.info('\nOptimizer: \n%s' % optimizer)
     if torch.cuda.is_available():
-        wetr = DistributedDataParallel(wetr, device_ids=[args.local_rank], find_unused_parameters=True)
+        wetr = DistributedDataParallel(
+            wetr, 
+            device_ids=[args.local_rank],
+            find_unused_parameters=False, 
+            broadcast_buffers=False)
 
     train_sampler.set_epoch(np.random.randint(cfg.train.max_iters))
     train_loader_iter = iter(train_loader)
@@ -297,54 +280,81 @@ def train(cfg):
             img_name, inputs, cls_labels, img_box = next(train_loader_iter)
 
         inputs = inputs.to(device, non_blocking=True)
-        inputs_denorm = imutils.denormalize_img2(inputs.clone())
         cls_labels = cls_labels.to(device, non_blocking=True)
 
+        # Forward pass through model
         cls, segs, attns, attn_pred = wetr(inputs, seg_detach=args.seg_detach)
-
-        cams, aff_mat = multi_scale_cam_with_aff_mat(wetr, inputs=inputs, scales=cfg.cam.scales)
-        valid_cam, pseudo_label = cam_to_label(cams.detach(), cls_label=cls_labels, img_box=img_box, ignore_mid=True, cfg=cfg)
-
-        valid_cam_resized = F.interpolate(valid_cam, size=(infer_size, infer_size), mode='bilinear', align_corners=False)
-
-        aff_cam_l = propagte_aff_cam_with_bkg(valid_cam_resized, aff=aff_mat.detach().clone(), mask=attn_mask_infer, cls_labels=cls_labels, bkg_score=cfg.cam.low_thre)
-        aff_cam_l = F.interpolate(aff_cam_l, size=pseudo_label.shape[1:], mode='bilinear', align_corners=False)
-        aff_cam_h = propagte_aff_cam_with_bkg(valid_cam_resized, aff=aff_mat.detach().clone(), mask=attn_mask_infer, cls_labels=cls_labels, bkg_score=cfg.cam.high_thre)
-        aff_cam_h = F.interpolate(aff_cam_h, size=pseudo_label.shape[1:], mode='bilinear', align_corners=False)
-
-
-        bkg_cls = bkg_cls.to(cams.device)
-        _cls_labels = torch.cat((bkg_cls, cls_labels), dim=1)
-
-        refined_aff_cam_l = refine_cams_with_cls_label(par, inputs_denorm, cams=aff_cam_l, labels=_cls_labels, img_box=img_box)
-        refined_aff_label_l = refined_aff_cam_l.argmax(dim=1)
-        refined_aff_cam_h = refine_cams_with_cls_label(par, inputs_denorm, cams=aff_cam_h, labels=_cls_labels, img_box=img_box)
-        refined_aff_label_h = refined_aff_cam_h.argmax(dim=1)
-
-        aff_cam = aff_cam_l[:,1:]
-        refined_aff_cam = refined_aff_cam_l[:,1:,]
-        refined_aff_label = refined_aff_label_h.clone()
-        refined_aff_label[refined_aff_label_h == 0] = cfg.dataset.ignore_index
-        refined_aff_label[(refined_aff_label_h + refined_aff_label_l) == 0] = 0
-        refined_aff_label = ignore_img_box(refined_aff_label, img_box=img_box, ignore_index=cfg.dataset.ignore_index)
-
-        refined_pseudo_label = refine_cams_with_bkg_v2(par, inputs_denorm, cams=cams, cls_labels=cls_labels, cfg=cfg, img_box=img_box)
-
-        # Use pseudo labels for first half of training, then switch to affinity labels
-        if n_iter <= aff_label_switch_iter:
-            refined_aff_label = refined_pseudo_label
-
-        aff_label = cams_to_affinity_label(refined_aff_label, mask=attn_mask, ignore_index=cfg.dataset.ignore_index)
-        aff_loss, pos_count, neg_count = get_aff_loss(attn_pred, aff_label)
-
-        segs = F.interpolate(segs, size=refined_pseudo_label.shape[1:], mode='bilinear', align_corners=False)
-
-        seg_loss = get_seg_loss(segs, refined_aff_label.type(torch.long), ignore_index=cfg.dataset.ignore_index)
         cls_loss = F.multilabel_soft_margin_loss(cls, cls_labels)
 
+        # Phase 1: Classification-only training (before cam_iters)
+        # Skip expensive CAM/PAR refinement since seg_loss and aff_loss are zeroed anyway
         if n_iter <= cfg.train.cam_iters:
-            loss = 1.0 * cls_loss + 0.0 * seg_loss + 0.0 * aff_loss
+            # Add dummy terms (multiplied by 0) to ensure all parameters receive gradients
+            # This is required for DDP with find_unused_parameters=False
+            dummy_seg = 0.0 * segs.sum()
+            dummy_attn = 0.0 * attn_pred.sum()
+            loss = cls_loss + dummy_seg + dummy_attn
+            # Placeholder values for logging
+            seg_loss = torch.tensor(0.0, device=device)
+            aff_loss = torch.tensor(0.0, device=device)
+            pos_count = torch.tensor(0, device=device)
+            neg_count = torch.tensor(0, device=device)
+            # Placeholders for tensorboard visualization (will be skipped in logging block)
+            valid_cam = None
+            aff_cam = None
+            refined_aff_cam = None
+            pseudo_label = None
+            refined_pseudo_label = None
+            refined_aff_label = None
         else:
+            # Phase 2+: Full training with CAM/affinity refinement
+            inputs_denorm = imutils.denormalize_img2(inputs.clone())
+            
+            cams, aff_mat = multi_scale_cam_with_aff_mat(wetr, inputs=inputs, scales=cfg.cam.scales)
+            valid_cam, pseudo_label = cam_to_label(cams.detach(), cls_label=cls_labels, img_box=img_box, ignore_mid=True, cfg=cfg)
+
+            valid_cam_resized = F.interpolate(valid_cam, size=(infer_size, infer_size), mode='bilinear', align_corners=False)
+
+            # Affinity refinement only needed after aff_label_switch_iter
+            if n_iter > aff_label_switch_iter:
+                # Full affinity-based refinement path
+                aff_cam_l = propagte_aff_cam_with_bkg(valid_cam_resized, aff=aff_mat.detach().clone(), mask=attn_mask_infer, cls_labels=cls_labels, bkg_score=cfg.cam.low_thre)
+                aff_cam_l = F.interpolate(aff_cam_l, size=pseudo_label.shape[1:], mode='bilinear', align_corners=False)
+                aff_cam_h = propagte_aff_cam_with_bkg(valid_cam_resized, aff=aff_mat.detach().clone(), mask=attn_mask_infer, cls_labels=cls_labels, bkg_score=cfg.cam.high_thre)
+                aff_cam_h = F.interpolate(aff_cam_h, size=pseudo_label.shape[1:], mode='bilinear', align_corners=False)
+
+                bkg_cls = bkg_cls.to(cams.device)
+                _cls_labels = torch.cat((bkg_cls, cls_labels), dim=1)
+
+                refined_aff_cam_l = refine_cams_with_cls_label(par, inputs_denorm, cams=aff_cam_l, labels=_cls_labels, img_box=img_box)
+                refined_aff_label_l = refined_aff_cam_l.argmax(dim=1)
+                refined_aff_cam_h = refine_cams_with_cls_label(par, inputs_denorm, cams=aff_cam_h, labels=_cls_labels, img_box=img_box)
+                refined_aff_label_h = refined_aff_cam_h.argmax(dim=1)
+
+                aff_cam = aff_cam_l[:,1:]
+                refined_aff_cam = refined_aff_cam_l[:,1:,]
+                refined_aff_label = refined_aff_label_h.clone()
+                refined_aff_label[refined_aff_label_h == 0] = cfg.dataset.ignore_index
+                refined_aff_label[(refined_aff_label_h + refined_aff_label_l) == 0] = 0
+                refined_aff_label = ignore_img_box(refined_aff_label, img_box=img_box, ignore_index=cfg.dataset.ignore_index)
+            else:
+                # Before aff_label_switch_iter: use pseudo labels from CAM refinement only
+                refined_pseudo_label = refine_cams_with_bkg_v2(par, inputs_denorm, cams=cams, cls_labels=cls_labels, cfg=cfg, img_box=img_box)
+                refined_aff_label = refined_pseudo_label
+                # Placeholders for tensorboard
+                aff_cam = valid_cam  # Use valid_cam as placeholder
+                refined_aff_cam = valid_cam
+
+            # Store refined_pseudo_label for logging if not already set
+            if n_iter > aff_label_switch_iter:
+                refined_pseudo_label = refined_aff_label  # For logging consistency
+
+            aff_label = cams_to_affinity_label(refined_aff_label, mask=attn_mask, ignore_index=cfg.dataset.ignore_index)
+            aff_loss, pos_count, neg_count = get_aff_loss(attn_pred, aff_label)
+
+            segs = F.interpolate(segs, size=refined_aff_label.shape[1:], mode='bilinear', align_corners=False)
+            seg_loss = get_seg_loss(segs, refined_aff_label.type(torch.long), ignore_index=cfg.dataset.ignore_index)
+
             loss = 1.0 * cls_loss + 0.1 * seg_loss + 0.1 * aff_loss
 
 
@@ -359,51 +369,78 @@ def train(cfg):
             delta, eta = cal_eta(time0, n_iter+1, cfg.train.max_iters)
             cur_lr = optimizer.param_groups[0]['lr']
 
-            preds = torch.argmax(segs,dim=1,).cpu().numpy().astype(np.int16)
-            gts = pseudo_label.cpu().numpy().astype(np.int16)
-            refined_gts = refined_pseudo_label.cpu().numpy().astype(np.int16)
-            aff_gts = refined_aff_label.cpu().numpy().astype(np.int16)
+            # Phase 1 (before cam_iters): simplified logging without CAM visualizations
+            if n_iter <= cfg.train.cam_iters:
+                seg_mAcc = 0.0  # No pseudo-labels computed yet
+                if args.local_rank==0:
+                    logging.info("Iter: %d; Elasped: %s; ETA: %s; LR: %.3e; cls_loss: %.4f (cls-only phase)"%(n_iter+1, delta, eta, cur_lr, avg_meter.pop('cls_loss')))
+                    avg_meter.pop('aff_loss')  # Clear placeholder
+                    avg_meter.pop('seg_loss')  # Clear placeholder
+                    
+                    # Only log attention maps during early phase
+                    _attns_detach = [a.detach() for a in attns]
+                    _attns_detach.append(attn_pred.detach())
+                    grid_attns = imutils.tensorboard_attn2(attns=_attns_detach, n_row=cfg.train.samples_per_gpu)
+                    
+                    _imgs = imutils.denormalize_img(inputs.clone())
+                    grid_imgs = torchvision.utils.make_grid(tensor=_imgs, nrow=2)
+                    writer.add_image("train/images", grid_imgs, global_step=n_iter)
+                    writer.add_image("attns/top_stages_case0", grid_attns[0], global_step=n_iter)
+                    writer.add_image("attns/top_stages_case1", grid_attns[1], global_step=n_iter)
+                    writer.add_image("attns/top_stages_case2", grid_attns[2], global_step=n_iter)
+                    writer.add_image("attns/top_stages_case3", grid_attns[3], global_step=n_iter)
+                    writer.add_image("attns/last_stage_case0", grid_attns[4], global_step=n_iter)
+                    writer.add_image("attns/last_stage_case1", grid_attns[5], global_step=n_iter)
+                    writer.add_image("attns/last_stage_case2", grid_attns[6], global_step=n_iter)
+                    writer.add_image("attns/last_stage_case3", grid_attns[7], global_step=n_iter)
+                    writer.add_scalars('train/loss', {"cls_loss": cls_loss.item()}, global_step=n_iter)
+            else:
+                # Phase 2+: full logging with CAM visualizations
+                preds = torch.argmax(segs,dim=1,).cpu().numpy().astype(np.int16)
+                gts = pseudo_label.cpu().numpy().astype(np.int16)
+                refined_gts = refined_pseudo_label.cpu().numpy().astype(np.int16)
+                aff_gts = refined_aff_label.cpu().numpy().astype(np.int16)
 
-            seg_mAcc = (preds==gts).sum()/preds.size
+                seg_mAcc = (preds==gts).sum()/preds.size
 
-            grid_imgs, grid_cam = imutils.tensorboard_image(imgs=inputs.clone(), cam=valid_cam)
-            _, grid_aff_cam = imutils.tensorboard_image(imgs=inputs.clone(), cam=aff_cam)
-            _, grid_ref_aff_cam = imutils.tensorboard_image(imgs=inputs.clone(), cam=refined_aff_cam)
+                grid_imgs, grid_cam = imutils.tensorboard_image(imgs=inputs.clone(), cam=valid_cam)
+                _, grid_aff_cam = imutils.tensorboard_image(imgs=inputs.clone(), cam=aff_cam)
+                _, grid_ref_aff_cam = imutils.tensorboard_image(imgs=inputs.clone(), cam=refined_aff_cam)
 
-            _attns_detach = [a.detach() for a in attns]
-            _attns_detach.append(attn_pred.detach())
-            grid_attns = imutils.tensorboard_attn2(attns=_attns_detach, n_row=cfg.train.samples_per_gpu)
+                _attns_detach = [a.detach() for a in attns]
+                _attns_detach.append(attn_pred.detach())
+                grid_attns = imutils.tensorboard_attn2(attns=_attns_detach, n_row=cfg.train.samples_per_gpu)
 
-            grid_labels = imutils.tensorboard_label(labels=gts)
-            grid_preds = imutils.tensorboard_label(labels=preds)
-            grid_refined_gt = imutils.tensorboard_label(labels=refined_gts)
-            grid_aff_gt = imutils.tensorboard_label(labels=aff_gts)
+                grid_labels = imutils.tensorboard_label(labels=gts)
+                grid_preds = imutils.tensorboard_label(labels=preds)
+                grid_refined_gt = imutils.tensorboard_label(labels=refined_gts)
+                grid_aff_gt = imutils.tensorboard_label(labels=aff_gts)
 
-            if args.local_rank==0:
-                logging.info("Iter: %d; Elasped: %s; ETA: %s; LR: %.3e; cls_loss: %.4f, aff_loss: %.4f, pseudo_seg_loss %.4f, pseudo_seg_mAcc: %.4f"%(n_iter+1, delta, eta, cur_lr, avg_meter.pop('cls_loss'), avg_meter.pop('aff_loss'), avg_meter.pop('seg_loss'), seg_mAcc))
+                if args.local_rank==0:
+                    logging.info("Iter: %d; Elasped: %s; ETA: %s; LR: %.3e; cls_loss: %.4f, aff_loss: %.4f, pseudo_seg_loss %.4f, pseudo_seg_mAcc: %.4f"%(n_iter+1, delta, eta, cur_lr, avg_meter.pop('cls_loss'), avg_meter.pop('aff_loss'), avg_meter.pop('seg_loss'), seg_mAcc))
 
-                writer.add_image("train/images", grid_imgs, global_step=n_iter)
-                writer.add_image("train/preds", grid_preds, global_step=n_iter)
-                writer.add_image("train/pseudo_gts", grid_labels, global_step=n_iter)
-                writer.add_image("train/pseudo_ref_gts", grid_refined_gt, global_step=n_iter)
-                writer.add_image("train/aff_gts", grid_aff_gt, global_step=n_iter)
-                writer.add_image("cam/valid_cams", grid_cam, global_step=n_iter)
-                writer.add_image("cam/aff_cams", grid_aff_cam, global_step=n_iter)
-                writer.add_image("cam/refined_aff_cams", grid_ref_aff_cam, global_step=n_iter)
+                    writer.add_image("train/images", grid_imgs, global_step=n_iter)
+                    writer.add_image("train/preds", grid_preds, global_step=n_iter)
+                    writer.add_image("train/pseudo_gts", grid_labels, global_step=n_iter)
+                    writer.add_image("train/pseudo_ref_gts", grid_refined_gt, global_step=n_iter)
+                    writer.add_image("train/aff_gts", grid_aff_gt, global_step=n_iter)
+                    writer.add_image("cam/valid_cams", grid_cam, global_step=n_iter)
+                    writer.add_image("cam/aff_cams", grid_aff_cam, global_step=n_iter)
+                    writer.add_image("cam/refined_aff_cams", grid_ref_aff_cam, global_step=n_iter)
 
-                writer.add_image("attns/top_stages_case0", grid_attns[0], global_step=n_iter)
-                writer.add_image("attns/top_stages_case1", grid_attns[1], global_step=n_iter)
-                writer.add_image("attns/top_stages_case2", grid_attns[2], global_step=n_iter)
-                writer.add_image("attns/top_stages_case3", grid_attns[3], global_step=n_iter)
+                    writer.add_image("attns/top_stages_case0", grid_attns[0], global_step=n_iter)
+                    writer.add_image("attns/top_stages_case1", grid_attns[1], global_step=n_iter)
+                    writer.add_image("attns/top_stages_case2", grid_attns[2], global_step=n_iter)
+                    writer.add_image("attns/top_stages_case3", grid_attns[3], global_step=n_iter)
 
-                writer.add_image("attns/last_stage_case0", grid_attns[4], global_step=n_iter)
-                writer.add_image("attns/last_stage_case1", grid_attns[5], global_step=n_iter)
-                writer.add_image("attns/last_stage_case2", grid_attns[6], global_step=n_iter)
-                writer.add_image("attns/last_stage_case3", grid_attns[7], global_step=n_iter)
+                    writer.add_image("attns/last_stage_case0", grid_attns[4], global_step=n_iter)
+                    writer.add_image("attns/last_stage_case1", grid_attns[5], global_step=n_iter)
+                    writer.add_image("attns/last_stage_case2", grid_attns[6], global_step=n_iter)
+                    writer.add_image("attns/last_stage_case3", grid_attns[7], global_step=n_iter)
 
-                writer.add_scalars('train/loss', {"seg_loss": seg_loss.item(), "cls_loss": cls_loss.item()}, global_step=n_iter)
-                writer.add_scalar('count/pos_count', pos_count.item(), global_step=n_iter)
-                writer.add_scalar('count/neg_count', neg_count.item(), global_step=n_iter)
+                    writer.add_scalars('train/loss', {"seg_loss": seg_loss.item(), "cls_loss": cls_loss.item()}, global_step=n_iter)
+                    writer.add_scalar('count/pos_count', pos_count.item(), global_step=n_iter)
+                    writer.add_scalar('count/neg_count', neg_count.item(), global_step=n_iter)
 
 
         if (n_iter+1) % cfg.train.eval_iters == 0:
@@ -413,17 +450,11 @@ def train(cfg):
                 torch.save(wetr.state_dict(), ckpt_name)
             cls_score, seg_score, cam_score, aff_score = validate(model=wetr, data_loader=val_loader, cfg=cfg, device=device)
             if args.local_rank==0:
-                logging.info("=== Classification Score (VALID) ===")
+                logging.info("=== Validation Scores ===")
                 logging.info("val cls score: %.6f"%(cls_score))
-                logging.info("=== Segmentation Scores (NO GROUND TRUTH - for reference only) ===")
-                logging.info("cams score:")
-                logging.info(cam_score)
-                logging.info("aff cams score:")
-                logging.info(aff_score)
-                logging.info("segs score:")
-                logging.info(seg_score)
+                logging.info("(seg/cam/aff scores N/A - no GT masks for BRATS)")
 
-                # Track best checkpoint
+                # Track best checkpoint based on classification score
                 if cls_score > best_cls_score:
                     best_cls_score = cls_score
                     torch.save(wetr.state_dict(), best_ckpt_path)
