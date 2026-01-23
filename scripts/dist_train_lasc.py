@@ -132,10 +132,15 @@ def validate(model=None, data_loader=None, cfg=None, device=None):
             avg_meter.add({"cls_score": _f1})
 
     cls_score = avg_meter.pop('cls_score')
-    
+
     # Return dummy scores for seg/cam/aff to match COCO signature (no GT masks available)
     dummy_score = {"pAcc": 0.0, "mAcc": 0.0, "miou": 0.0, "iou": {}}
     model.train()
+
+    # Clear CUDA cache after validation to free memory before training resumes
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
     return cls_score, dummy_score, dummy_score, dummy_score
 
 
@@ -442,6 +447,17 @@ def train(cfg):
                     writer.add_scalar('count/pos_count', pos_count.item(), global_step=n_iter)
                     writer.add_scalar('count/neg_count', neg_count.item(), global_step=n_iter)
 
+        # Memory optimization: delete intermediate tensors after logging is done
+        # These are large tensors created during CAM/affinity computation
+        if n_iter > cfg.train.cam_iters:
+            del inputs_denorm, cams, aff_mat, valid_cam, pseudo_label
+            del aff_label, refined_aff_label
+            if n_iter > aff_label_switch_iter:
+                del valid_cam_resized, aff_cam_l, aff_cam_h
+                del refined_aff_cam_l, refined_aff_cam_h
+            # Clear CUDA cache periodically to reduce fragmentation
+            if torch.cuda.is_available() and (n_iter + 1) % 50 == 0:
+                torch.cuda.empty_cache()
 
         if (n_iter+1) % cfg.train.eval_iters == 0:
             ckpt_name = os.path.join(cfg.work_dir.ckpt_dir, "wetr_iter_%d.pth"%(n_iter+1))
