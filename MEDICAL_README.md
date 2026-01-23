@@ -85,7 +85,8 @@ torchrun --nproc_per_node=1 --master_port=29520 \
 ```bash
 source .venv/bin/activate
 
-torchrun --nproc_per_node=1 --master_port=29520 scripts/dist_train_kits.py --config configs/kits_attn_reg.yaml --pooling gmp --crop_size 320 --work_dir work_dir_kits --backend gloo --cpu
+torchrun --nproc_per_node=1 --master_port=29520 scripts/dist_train_lasc.py --config configs/lasc_attn_reg.yaml --pooling gmp --crop_size 320 --work_dir work_dir_lasc
+
 
 # Single GPU
 torchrun --nproc_per_node=1 --master_port=29520 \
