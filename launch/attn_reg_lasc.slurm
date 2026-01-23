@@ -4,7 +4,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
-#SBATCH --mem=0
+#SBATCH --mem=160000
 #SBATCH --gres=gpu:a100:1
 #SBATCH --time=6:00:00
 #SBATCH --output=logs/AFA_LASC_%A.out
