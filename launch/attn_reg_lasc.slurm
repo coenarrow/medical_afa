@@ -1,5 +1,23 @@
+#!/bin/bash
+#SBATCH --job-name=AFA_LASC
+#SBATCH --partition=pophealth
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=0
+#SBATCH --gres=gpu:a100:1
+#SBATCH --time=6:00:00
+#SBATCH --output=logs/AFA_LASC_%A.out
+#SBATCH --error=logs/AFA_LASC_%A.err
 
+cd "/group/pgh004/carrow/repo/medical_afa"
 
+echo "changed directory to $PWD"
 
-torchrun --nproc_per_node=1 --master_port=29519 scripts/dist_train_coco.py --config configs/coco_attn_reg.yaml --pooling gmp --crop_size 512 --work_dir work_dir_attn_coco
+source .venv/bin/activate
 
+echo "environment activated"
+
+torchrun --nproc_per_node=1 --master_port=29520 scripts/dist_train_lasc.py --config configs/lasc_attn_reg.yaml --pooling gmp --crop_size 512 --work_dir work_dir_lasc
+# torchrun --nproc_per_node=1 --master_port=29520 scripts/dist_train_brats.py --config configs/brats_attn_reg.yaml --pooling gmp --crop_size 512 --work_dir work_dir_brats
+# torchrun --nproc_per_node=1 --master_port=29520 scripts/dist_train_kits.py --config configs/kits_attn_reg.yaml --pooling gmp --crop_size 512 --work_dir work_dir_kits
