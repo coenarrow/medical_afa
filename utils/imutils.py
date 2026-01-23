@@ -124,7 +124,11 @@ def tensorboard_attn2(attns=None, size=[224,224], n_pixs=[0.0, 0.3, 0.6, 0.9], n
 
 def tensorboard_label(labels=None):
     ## labels
-    labels_cmap = encode_cmap(np.squeeze(labels))
+    labels_np = np.asarray(labels)
+    # Ensure batch dimension is preserved (handle batch_size=1)
+    if labels_np.ndim == 2:
+        labels_np = labels_np[np.newaxis, ...]
+    labels_cmap = encode_cmap(labels_np)
     labels_cmap = torch.from_numpy(labels_cmap).permute([0, 3, 1, 2])
     grid_labels = torchvision.utils.make_grid(tensor=labels_cmap, nrow=2)
 
