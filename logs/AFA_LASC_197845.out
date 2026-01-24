@@ -1,0 +1,6 @@
+pydensecrf not available. CRF refinement will be skipped.
+Using CUDA device: 0
+
+Generation complete!
+  PNG visualizations: work_dir_lasc/attention_maps
+  CAM NPY files: work_dir_lasc/cam_npy
