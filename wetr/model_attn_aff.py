@@ -21,7 +21,7 @@ class WeTr(nn.Module):
 
         ## initilize encoder
         if pretrained:
-            state_dict = torch.load('pretrained/'+backbone+'.pth')
+            state_dict = torch.load('pretrained/'+backbone+'.pth', map_location='cpu')
             state_dict.pop('head.weight')
             state_dict.pop('head.bias')
             self.encoder.load_state_dict(state_dict,)

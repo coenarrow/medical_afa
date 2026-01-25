@@ -257,11 +257,16 @@ def train(cfg):
         power = cfg.scheduler.power
     )
     logging.info('\nOptimizer: \n%s' % optimizer)
+
+    # Synchronize all ranks before DDP to prevent NCCL timeout
+    # (rank 0 does extra logging which can cause timing mismatch)
+    dist.barrier()
+
     if torch.cuda.is_available():
         wetr = DistributedDataParallel(
-            wetr, 
+            wetr,
             device_ids=[args.local_rank],
-            find_unused_parameters=False, 
+            find_unused_parameters=False,
             broadcast_buffers=False)
 
     train_sampler.set_epoch(np.random.randint(cfg.train.max_iters))
