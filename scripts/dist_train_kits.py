@@ -43,6 +43,10 @@ parser.add_argument("--radius", default=8, type=int, help="radius")
 parser.add_argument("--crop_size", default=320, type=int, help="crop_size")
 parser.add_argument('--backend', default='nccl')
 parser.add_argument('--cpu', action='store_true', help='Force CPU device')
+parser.add_argument("--generate_only", action="store_true",
+                    help="Skip training, only generate CAMs/attention maps from checkpoint")
+parser.add_argument("--checkpoint", type=str, default=None,
+                    help="Path to checkpoint for --generate_only mode (default: best.pth in work_dir)")
 
 
 def generate_attention_maps_after_training(cfg, checkpoint_path, device, args):
@@ -498,4 +502,22 @@ if __name__ == "__main__":
         logging.info('\nconfigs: %s' % cfg)
 
     setup_seed(1)
+
+    # Generate-only mode: skip training, just generate CAMs/attention maps
+    if args.generate_only:
+        # Determine checkpoint path
+        if args.checkpoint:
+            ckpt_path = args.checkpoint
+        else:
+            ckpt_path = os.path.join(cfg.work_dir.ckpt_dir, "best.pth")
+
+        if not os.path.exists(ckpt_path):
+            raise FileNotFoundError(f"Checkpoint not found: {ckpt_path}")
+
+        device = torch.device("cuda" if torch.cuda.is_available() and not args.cpu else "cpu")
+        logging.info(f"Generate-only mode: loading checkpoint from {ckpt_path}")
+        generate_attention_maps_after_training(cfg, ckpt_path, device, args)
+        logging.info("CAM/attention map generation complete.")
+        sys.exit(0)
+
     train(cfg=cfg)
