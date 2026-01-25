@@ -1759,3 +1759,129 @@ bucket_view.sizes() = [2, 256, 1, 1], strides() = [256, 1, 1, 1] (Triggered inte
 2026-01-24 11:19:11,243 - dist_train_kits.py - INFO: (seg/cam/aff scores N/A - no GT masks for KITS)
 2026-01-24 11:21:14,399 - dist_train_kits.py - INFO: Iter: 97200; Elasped: 17:40:22; ETA: 1 day, 17:35:27; LR: 4.211e-05; cls_loss: 0.0913, aff_loss: 0.0237, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.3232
 2026-01-24 11:23:24,237 - dist_train_kits.py - INFO: Iter: 97400; Elasped: 17:42:32; ETA: 1 day, 17:33:14; LR: 4.207e-05; cls_loss: 0.0834, aff_loss: 0.0303, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.2005
+2026-01-24 11:24:30,294 - dist_train_kits.py - INFO: Validating...
+  0%|                                                                         | 0/4 [00:00<?, ?it/s] 75%|================================================>                | 3/4 [00:00<00:00, 29.02it/s]100%|=================================================================| 4/4 [00:00<00:00, 19.31it/s]
+2026-01-24 11:24:30,914 - dist_train_kits.py - INFO: === Validation Scores ===
+2026-01-24 11:24:30,915 - dist_train_kits.py - INFO: val cls score: 0.000000
+2026-01-24 11:24:30,915 - dist_train_kits.py - INFO: (seg/cam/aff scores N/A - no GT masks for KITS)
+2026-01-24 11:25:33,182 - dist_train_kits.py - INFO: Iter: 97600; Elasped: 17:44:41; ETA: 1 day, 17:30:59; LR: 4.203e-05; cls_loss: 0.0932, aff_loss: 0.0273, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.3403
+2026-01-24 11:27:43,739 - dist_train_kits.py - INFO: Iter: 97800; Elasped: 17:46:51; ETA: 1 day, 17:28:46; LR: 4.200e-05; cls_loss: 0.0774, aff_loss: 0.0275, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.3140
+2026-01-24 11:29:53,448 - dist_train_kits.py - INFO: Iter: 98000; Elasped: 17:49:02; ETA: 1 day, 17:26:35; LR: 4.196e-05; cls_loss: 0.0733, aff_loss: 0.0243, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.2536
+2026-01-24 11:29:58,870 - dist_train_kits.py - INFO: Validating...
+  0%|                                                                         | 0/4 [00:00<?, ?it/s]100%|=================================================================| 4/4 [00:00<00:00, 20.70it/s]
+2026-01-24 11:29:59,569 - dist_train_kits.py - INFO: === Validation Scores ===
+2026-01-24 11:29:59,569 - dist_train_kits.py - INFO: val cls score: 0.000000
+2026-01-24 11:29:59,569 - dist_train_kits.py - INFO: (seg/cam/aff scores N/A - no GT masks for KITS)
+2026-01-24 11:32:02,773 - dist_train_kits.py - INFO: Iter: 98200; Elasped: 17:51:11; ETA: 1 day, 17:24:20; LR: 4.192e-05; cls_loss: 0.1028, aff_loss: 0.0247, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.2490
+2026-01-24 11:34:11,779 - dist_train_kits.py - INFO: Iter: 98400; Elasped: 17:53:20; ETA: 1 day, 17:22:05; LR: 4.189e-05; cls_loss: 0.0819, aff_loss: 0.0218, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.2361
+2026-01-24 11:35:18,163 - dist_train_kits.py - INFO: Validating...
+  0%|                                                                         | 0/4 [00:00<?, ?it/s]100%|=================================================================| 4/4 [00:00<00:00, 20.78it/s]
+2026-01-24 11:35:18,771 - dist_train_kits.py - INFO: === Validation Scores ===
+2026-01-24 11:35:18,771 - dist_train_kits.py - INFO: val cls score: 0.000000
+2026-01-24 11:35:18,771 - dist_train_kits.py - INFO: (seg/cam/aff scores N/A - no GT masks for KITS)
+2026-01-24 11:36:20,846 - dist_train_kits.py - INFO: Iter: 98600; Elasped: 17:55:29; ETA: 1 day, 17:19:49; LR: 4.185e-05; cls_loss: 0.0869, aff_loss: 0.0262, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.3485
+2026-01-24 11:38:30,468 - dist_train_kits.py - INFO: Iter: 98800; Elasped: 17:57:38; ETA: 1 day, 17:17:34; LR: 4.181e-05; cls_loss: 0.0842, aff_loss: 0.0229, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.4048
+2026-01-24 11:40:40,489 - dist_train_kits.py - INFO: Iter: 99000; Elasped: 17:59:49; ETA: 1 day, 17:15:23; LR: 4.178e-05; cls_loss: 0.0761, aff_loss: 0.0251, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.2830
+2026-01-24 11:40:46,390 - dist_train_kits.py - INFO: Validating...
+  0%|                                                                         | 0/4 [00:00<?, ?it/s]100%|=================================================================| 4/4 [00:00<00:00, 22.12it/s]
+2026-01-24 11:40:47,107 - dist_train_kits.py - INFO: === Validation Scores ===
+2026-01-24 11:40:47,108 - dist_train_kits.py - INFO: val cls score: 0.000000
+2026-01-24 11:40:47,108 - dist_train_kits.py - INFO: (seg/cam/aff scores N/A - no GT masks for KITS)
+2026-01-24 11:42:50,700 - dist_train_kits.py - INFO: Iter: 99200; Elasped: 18:01:59; ETA: 1 day, 17:13:10; LR: 4.174e-05; cls_loss: 0.0782, aff_loss: 0.0244, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.3531
+2026-01-24 11:45:01,091 - dist_train_kits.py - INFO: Iter: 99400; Elasped: 18:04:09; ETA: 1 day, 17:10:58; LR: 4.170e-05; cls_loss: 0.0883, aff_loss: 0.0255, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.4030
+2026-01-24 11:46:09,378 - dist_train_kits.py - INFO: Validating...
+  0%|                                                                         | 0/4 [00:00<?, ?it/s]100%|=================================================================| 4/4 [00:00<00:00, 18.49it/s]
+2026-01-24 11:46:10,005 - dist_train_kits.py - INFO: === Validation Scores ===
+2026-01-24 11:46:10,005 - dist_train_kits.py - INFO: val cls score: 0.000000
+2026-01-24 11:46:10,006 - dist_train_kits.py - INFO: (seg/cam/aff scores N/A - no GT masks for KITS)
+2026-01-24 11:47:12,514 - dist_train_kits.py - INFO: Iter: 99600; Elasped: 18:06:21; ETA: 1 day, 17:08:49; LR: 4.167e-05; cls_loss: 0.0881, aff_loss: 0.0223, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.3524
+2026-01-24 11:49:22,468 - dist_train_kits.py - INFO: Iter: 99800; Elasped: 18:08:31; ETA: 1 day, 17:06:36; LR: 4.163e-05; cls_loss: 0.0840, aff_loss: 0.0241, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.2944
+2026-01-24 11:51:32,469 - dist_train_kits.py - INFO: Iter: 100000; Elasped: 18:10:41; ETA: 1 day, 17:04:23; LR: 4.159e-05; cls_loss: 0.0869, aff_loss: 0.0200, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.2836
+2026-01-24 11:51:37,951 - dist_train_kits.py - INFO: Validating...
+  0%|                                                                         | 0/4 [00:00<?, ?it/s]100%|=================================================================| 4/4 [00:00<00:00, 23.00it/s]
+2026-01-24 11:51:38,648 - dist_train_kits.py - INFO: === Validation Scores ===
+2026-01-24 11:51:38,648 - dist_train_kits.py - INFO: val cls score: 0.000000
+2026-01-24 11:51:38,648 - dist_train_kits.py - INFO: (seg/cam/aff scores N/A - no GT masks for KITS)
+2026-01-24 11:53:41,796 - dist_train_kits.py - INFO: Iter: 100200; Elasped: 18:12:50; ETA: 1 day, 17:02:08; LR: 4.156e-05; cls_loss: 0.0896, aff_loss: 0.0196, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.2727
+2026-01-24 11:55:50,572 - dist_train_kits.py - INFO: Iter: 100400; Elasped: 18:14:59; ETA: 1 day, 16:59:53; LR: 4.152e-05; cls_loss: 0.0964, aff_loss: 0.0220, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.2324
+2026-01-24 11:56:57,028 - dist_train_kits.py - INFO: Validating...
+  0%|                                                                         | 0/4 [00:00<?, ?it/s]100%|=================================================================| 4/4 [00:00<00:00, 24.25it/s]
+2026-01-24 11:56:57,599 - dist_train_kits.py - INFO: === Validation Scores ===
+2026-01-24 11:56:57,599 - dist_train_kits.py - INFO: val cls score: 0.000000
+2026-01-24 11:56:57,599 - dist_train_kits.py - INFO: (seg/cam/aff scores N/A - no GT masks for KITS)
+2026-01-24 11:58:00,380 - dist_train_kits.py - INFO: Iter: 100600; Elasped: 18:17:08; ETA: 1 day, 16:57:38; LR: 4.148e-05; cls_loss: 0.0847, aff_loss: 0.0192, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.2578
+2026-01-24 12:00:09,467 - dist_train_kits.py - INFO: Iter: 100800; Elasped: 18:19:18; ETA: 1 day, 16:55:25; LR: 4.145e-05; cls_loss: 0.0762, aff_loss: 0.0238, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.3102
+2026-01-24 12:02:18,802 - dist_train_kits.py - INFO: Iter: 101000; Elasped: 18:21:27; ETA: 1 day, 16:53:10; LR: 4.141e-05; cls_loss: 0.0998, aff_loss: 0.0262, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.3077
+2026-01-24 12:02:25,506 - dist_train_kits.py - INFO: Validating...
+  0%|                                                                         | 0/4 [00:00<?, ?it/s]100%|=================================================================| 4/4 [00:00<00:00, 23.26it/s]
+2026-01-24 12:02:26,229 - dist_train_kits.py - INFO: === Validation Scores ===
+2026-01-24 12:02:26,229 - dist_train_kits.py - INFO: val cls score: 0.000000
+2026-01-24 12:02:26,229 - dist_train_kits.py - INFO: (seg/cam/aff scores N/A - no GT masks for KITS)
+2026-01-24 12:04:29,709 - dist_train_kits.py - INFO: Iter: 101200; Elasped: 18:23:38; ETA: 1 day, 16:51:00; LR: 4.137e-05; cls_loss: 0.0846, aff_loss: 0.0173, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.4424
+2026-01-24 12:06:40,803 - dist_train_kits.py - INFO: Iter: 101400; Elasped: 18:25:49; ETA: 1 day, 16:48:49; LR: 4.133e-05; cls_loss: 0.0934, aff_loss: 0.0207, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.3915
+2026-01-24 12:07:48,538 - dist_train_kits.py - INFO: Validating...
+  0%|                                                                         | 0/4 [00:00<?, ?it/s]100%|=================================================================| 4/4 [00:00<00:00, 21.11it/s]
+2026-01-24 12:07:49,146 - dist_train_kits.py - INFO: === Validation Scores ===
+2026-01-24 12:07:49,146 - dist_train_kits.py - INFO: val cls score: 0.000000
+2026-01-24 12:07:49,146 - dist_train_kits.py - INFO: (seg/cam/aff scores N/A - no GT masks for KITS)
+2026-01-24 12:08:51,641 - dist_train_kits.py - INFO: Iter: 101600; Elasped: 18:28:00; ETA: 1 day, 16:46:39; LR: 4.130e-05; cls_loss: 0.0831, aff_loss: 0.0228, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.2972
+2026-01-24 12:11:00,491 - dist_train_kits.py - INFO: Iter: 101800; Elasped: 18:30:09; ETA: 1 day, 16:44:24; LR: 4.126e-05; cls_loss: 0.0728, aff_loss: 0.0213, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.2740
+2026-01-24 12:13:09,261 - dist_train_kits.py - INFO: Iter: 102000; Elasped: 18:32:17; ETA: 1 day, 16:42:06; LR: 4.122e-05; cls_loss: 0.0936, aff_loss: 0.0260, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.2161
+2026-01-24 12:13:14,886 - dist_train_kits.py - INFO: Validating...
+  0%|                                                                         | 0/4 [00:00<?, ?it/s]100%|=================================================================| 4/4 [00:00<00:00, 18.37it/s]
+2026-01-24 12:13:15,626 - dist_train_kits.py - INFO: === Validation Scores ===
+2026-01-24 12:13:15,626 - dist_train_kits.py - INFO: val cls score: 0.000000
+2026-01-24 12:13:15,626 - dist_train_kits.py - INFO: (seg/cam/aff scores N/A - no GT masks for KITS)
+2026-01-24 12:15:19,225 - dist_train_kits.py - INFO: Iter: 102200; Elasped: 18:34:27; ETA: 1 day, 16:39:54; LR: 4.119e-05; cls_loss: 0.0906, aff_loss: 0.0228, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.3134
+2026-01-24 12:17:28,366 - dist_train_kits.py - INFO: Iter: 102400; Elasped: 18:36:36; ETA: 1 day, 16:37:39; LR: 4.115e-05; cls_loss: 0.0823, aff_loss: 0.0226, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.4577
+2026-01-24 12:18:36,571 - dist_train_kits.py - INFO: Validating...
+  0%|                                                                         | 0/4 [00:00<?, ?it/s]100%|=================================================================| 4/4 [00:00<00:00, 19.08it/s]
+2026-01-24 12:18:37,180 - dist_train_kits.py - INFO: === Validation Scores ===
+2026-01-24 12:18:37,180 - dist_train_kits.py - INFO: val cls score: 0.000000
+2026-01-24 12:18:37,180 - dist_train_kits.py - INFO: (seg/cam/aff scores N/A - no GT masks for KITS)
+2026-01-24 12:19:39,674 - dist_train_kits.py - INFO: Iter: 102600; Elasped: 18:38:48; ETA: 1 day, 16:35:30; LR: 4.111e-05; cls_loss: 0.0757, aff_loss: 0.0199, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.4270
+2026-01-24 12:21:49,911 - dist_train_kits.py - INFO: Iter: 102800; Elasped: 18:40:58; ETA: 1 day, 16:33:18; LR: 4.108e-05; cls_loss: 0.0747, aff_loss: 0.0184, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.2178
+2026-01-24 12:23:58,409 - dist_train_kits.py - INFO: Iter: 103000; Elasped: 18:43:06; ETA: 1 day, 16:31:01; LR: 4.104e-05; cls_loss: 0.0677, aff_loss: 0.0222, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.3517
+2026-01-24 12:24:04,538 - dist_train_kits.py - INFO: Validating...
+  0%|                                                                         | 0/4 [00:00<?, ?it/s]100%|=================================================================| 4/4 [00:00<00:00, 22.94it/s]
+2026-01-24 12:24:05,252 - dist_train_kits.py - INFO: === Validation Scores ===
+2026-01-24 12:24:05,252 - dist_train_kits.py - INFO: val cls score: 0.000000
+2026-01-24 12:24:05,252 - dist_train_kits.py - INFO: (seg/cam/aff scores N/A - no GT masks for KITS)
+2026-01-24 12:26:08,238 - dist_train_kits.py - INFO: Iter: 103200; Elasped: 18:45:16; ETA: 1 day, 16:28:48; LR: 4.100e-05; cls_loss: 0.0900, aff_loss: 0.0233, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.3043
+2026-01-24 12:28:17,645 - dist_train_kits.py - INFO: Iter: 103400; Elasped: 18:47:26; ETA: 1 day, 16:26:35; LR: 4.097e-05; cls_loss: 0.0738, aff_loss: 0.0199, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.4260
+2026-01-24 12:29:25,804 - dist_train_kits.py - INFO: Validating...
+  0%|                                                                         | 0/4 [00:00<?, ?it/s]100%|=================================================================| 4/4 [00:00<00:00, 19.01it/s]
+2026-01-24 12:29:26,430 - dist_train_kits.py - INFO: === Validation Scores ===
+2026-01-24 12:29:26,431 - dist_train_kits.py - INFO: val cls score: 0.000000
+2026-01-24 12:29:26,431 - dist_train_kits.py - INFO: (seg/cam/aff scores N/A - no GT masks for KITS)
+2026-01-24 12:30:28,667 - dist_train_kits.py - INFO: Iter: 103600; Elasped: 18:49:37; ETA: 1 day, 16:24:25; LR: 4.093e-05; cls_loss: 0.0707, aff_loss: 0.0200, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.2899
+2026-01-24 12:32:37,820 - dist_train_kits.py - INFO: Iter: 103800; Elasped: 18:51:46; ETA: 1 day, 16:22:10; LR: 4.089e-05; cls_loss: 0.0918, aff_loss: 0.0216, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.4044
+2026-01-24 12:34:47,223 - dist_train_kits.py - INFO: Iter: 104000; Elasped: 18:53:55; ETA: 1 day, 16:19:55; LR: 4.086e-05; cls_loss: 0.0599, aff_loss: 0.0200, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.3966
+2026-01-24 12:34:54,155 - dist_train_kits.py - INFO: Validating...
+  0%|                                                                         | 0/4 [00:00<?, ?it/s]100%|=================================================================| 4/4 [00:00<00:00, 22.11it/s]
+2026-01-24 12:34:54,902 - dist_train_kits.py - INFO: === Validation Scores ===
+2026-01-24 12:34:54,902 - dist_train_kits.py - INFO: val cls score: 0.000000
+2026-01-24 12:34:54,902 - dist_train_kits.py - INFO: (seg/cam/aff scores N/A - no GT masks for KITS)
+2026-01-24 12:36:58,220 - dist_train_kits.py - INFO: Iter: 104200; Elasped: 18:56:06; ETA: 1 day, 16:17:45; LR: 4.082e-05; cls_loss: 0.0568, aff_loss: 0.0221, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.3030
+2026-01-24 12:39:07,180 - dist_train_kits.py - INFO: Iter: 104400; Elasped: 18:58:15; ETA: 1 day, 16:15:30; LR: 4.078e-05; cls_loss: 0.0949, aff_loss: 0.0230, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.3080
+2026-01-24 12:40:14,416 - dist_train_kits.py - INFO: Validating...
+  0%|                                                                         | 0/4 [00:00<?, ?it/s]100%|=================================================================| 4/4 [00:00<00:00, 23.28it/s]
+2026-01-24 12:40:14,998 - dist_train_kits.py - INFO: === Validation Scores ===
+2026-01-24 12:40:14,998 - dist_train_kits.py - INFO: val cls score: 0.000000
+2026-01-24 12:40:14,998 - dist_train_kits.py - INFO: (seg/cam/aff scores N/A - no GT masks for KITS)
+2026-01-24 12:41:17,427 - dist_train_kits.py - INFO: Iter: 104600; Elasped: 19:00:25; ETA: 1 day, 16:13:18; LR: 4.075e-05; cls_loss: 0.0811, aff_loss: 0.0205, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.2823
+2026-01-24 12:43:26,492 - dist_train_kits.py - INFO: Iter: 104800; Elasped: 19:02:35; ETA: 1 day, 16:11:05; LR: 4.071e-05; cls_loss: 0.1018, aff_loss: 0.0234, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.2151
+2026-01-24 12:45:34,879 - dist_train_kits.py - INFO: Iter: 105000; Elasped: 19:04:43; ETA: 1 day, 16:08:48; LR: 4.067e-05; cls_loss: 0.0694, aff_loss: 0.0257, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.3603
+2026-01-24 12:45:41,422 - dist_train_kits.py - INFO: Validating...
+  0%|                                                                         | 0/4 [00:00<?, ?it/s]100%|=================================================================| 4/4 [00:00<00:00, 22.08it/s]
+2026-01-24 12:45:42,159 - dist_train_kits.py - INFO: === Validation Scores ===
+2026-01-24 12:45:42,159 - dist_train_kits.py - INFO: val cls score: 0.000000
+2026-01-24 12:45:42,159 - dist_train_kits.py - INFO: (seg/cam/aff scores N/A - no GT masks for KITS)
+2026-01-24 12:47:45,078 - dist_train_kits.py - INFO: Iter: 105200; Elasped: 19:06:53; ETA: 1 day, 16:06:36; LR: 4.064e-05; cls_loss: 0.0756, aff_loss: 0.0209, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.3274
+2026-01-24 12:49:55,222 - dist_train_kits.py - INFO: Iter: 105400; Elasped: 19:09:03; ETA: 1 day, 16:04:23; LR: 4.060e-05; cls_loss: 0.0648, aff_loss: 0.0192, pseudo_seg_loss nan, pseudo_seg_mAcc: 0.4004
+2026-01-24 12:51:03,444 - dist_train_kits.py - INFO: Validating...
+  0%|                                                                         | 0/4 [00:00<?, ?it/s]100%|=================================================================| 4/4 [00:00<00:00, 22.65it/s]
+2026-01-24 12:51:04,075 - dist_train_kits.py - INFO: === Validation Scores ===
+2026-01-24 12:51:04,075 - dist_train_kits.py - INFO: val cls score: 0.000000
+2026-01-24 12:51:04,075 - dist_train_kits.py - INFO: (seg/cam/aff scores N/A - no GT masks for KITS)
+slurmstepd: error: *** JOB 197847 ON k177 CANCELLED AT 2026-01-24T12:51:55 ***

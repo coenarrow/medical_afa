@@ -3,7 +3,7 @@
 #SBATCH --partition=pophealth
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=8
 #SBATCH --mem=160000
 #SBATCH --gres=gpu:a100:1
 #SBATCH --time=6:00:00
@@ -17,4 +17,4 @@ source .venv/bin/activate
 # Memory optimization: reduce fragmentation
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-torchrun --nproc_per_node=1 --master_port=29520 scripts/dist_train_lasc.py --config configs/lasc_attn_reg.yaml --pooling gmp --crop_size 512 --work_dir work_dir_lasc
+torchrun --nproc_per_node=1 --master_port=29520 scripts/dist_train_lasc.py --config configs/lasc_attn_reg.yaml --pooling gmp --crop_size 224 --work_dir work_dir_lasc_224

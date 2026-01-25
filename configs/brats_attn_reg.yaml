@@ -21,8 +21,8 @@ work_dir:
 
 train:
   split: train
-  samples_per_gpu: 8 # 4,        8,      16,     32,     64,     128
-  max_iters: 594813 #    1189625,  594813, 297406, 148703, 74352, 37176
+  samples_per_gpu: 128 # 4,        8,      16,     32,     64,     128
+  max_iters: 37176 #    1189625,  594813, 297406, 148703, 74352, 37176
   cam_iters: 500
   eval_iters: 500
   log_iters: 200

@@ -5,7 +5,7 @@ backbone:
 
 dataset:
   root_dir: data/KITS/imageSlice
-  slice_split: [4, 8] #[8494, 15054]
+  slice_split: [8494, 15054] #[8494, 15054]
   num_classes: 2
   crop_size: 320
   resize_range: [512, 2048]
@@ -21,8 +21,8 @@ work_dir:
 
 train:
   split: train
-  samples_per_gpu: 8 # 4,      8,      16,     32,     64,     128
-  max_iters: 325950 #    651900, 325950, 162975, 81487,  40743,  20371
+  samples_per_gpu: 128 # 4,      8,      16,     32,     64,     128
+  max_iters: 20371 #    651900, 325950, 162975, 81487,  40743,  20371
   cam_iters: 500
   eval_iters: 500
   log_iters: 200

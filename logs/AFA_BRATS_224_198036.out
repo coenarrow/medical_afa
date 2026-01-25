@@ -1,0 +1,3 @@
+environment activated
+pydensecrf not available. CRF refinement will be skipped.
+Using CUDA device: 0
